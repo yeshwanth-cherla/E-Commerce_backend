@@ -3,6 +3,7 @@ package com.ecommerce.controller;
 import com.ecommerce.dto.OrderResponseDto;
 import com.ecommerce.dto.PaginatedResponseDto;
 import com.ecommerce.dto.UpdateOrderStatusRequestDto;
+import com.ecommerce.dto.UpdatePaymentStatusRequestDto;
 import com.ecommerce.entity.OrderStatus;
 import com.ecommerce.service.AdminOrderService;
 import jakarta.validation.Valid;
@@ -62,6 +63,18 @@ public class AdminOrderController {
             @Valid @RequestBody UpdateOrderStatusRequestDto dto) {
 
         OrderResponseDto updatedOrder = adminOrderService.updateOrderStatus(orderId, dto);
+        return ResponseEntity.ok(updatedOrder);
+    }
+
+    /**
+     * Update payment status (e.g., mark COD cash as collected).
+     */
+    @PutMapping("/{orderId}/payment-status")
+    public ResponseEntity<OrderResponseDto> updatePaymentStatus(
+            @PathVariable UUID orderId,
+            @Valid @RequestBody UpdatePaymentStatusRequestDto dto) {
+
+        OrderResponseDto updatedOrder = adminOrderService.updatePaymentStatus(orderId, dto);
         return ResponseEntity.ok(updatedOrder);
     }
 }

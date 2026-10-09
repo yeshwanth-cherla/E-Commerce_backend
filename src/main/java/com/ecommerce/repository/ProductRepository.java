@@ -33,7 +33,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(attributePaths = {"category"})
     @Query("SELECT p FROM Product p WHERE " +
            "(:enabledOnly = false OR p.enabled = true) AND " +
-           "(:categoryId IS NULL OR p.category.id = :categoryId) AND " +
+           "(:categoryId IS NULL OR p.category.id = :categoryId OR p.category.parent.id = :categoryId) AND " +
            "(CAST(:search AS string) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(p.description) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<Product> findProductsWithFilters(
             @Param("search") String search,
@@ -69,7 +69,7 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
     @EntityGraph(attributePaths = {"category"})
     @Query("SELECT p FROM Product p WHERE " +
            "p.stockQuantity <= :threshold AND " +
-           "(:categoryId IS NULL OR p.category.id = :categoryId) AND " +
+           "(:categoryId IS NULL OR p.category.id = :categoryId OR p.category.parent.id = :categoryId) AND " +
            "(CAST(:search AS string) IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')))")
     Page<Product> findLowStockProducts(
             @Param("threshold") int threshold,

@@ -31,6 +31,12 @@ public class OrderResponseDto {
 
     List<OrderItemResponseDto> items;
 
+    String paymentMethod;
+
+    com.ecommerce.entity.PaymentStatus paymentStatus;
+
+    Instant paidAt;
+
     Instant createdAt;
 
     /**

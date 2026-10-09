@@ -51,6 +51,12 @@ public class CategoryService {
         category.setName(dto.getName().trim());
         category.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : null);
 
+        if (dto.getParentId() != null) {
+            Category parent = categoryRepository.findById(dto.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category", "id", dto.getParentId()));
+            category.setParent(parent);
+        }
+
         Category savedCategory = categoryRepository.save(category);
         log.info("Created new category: ID={}, Name='{}'", savedCategory.getId(), savedCategory.getName());
         return mapToResponseDto(savedCategory);
@@ -70,6 +76,17 @@ public class CategoryService {
         category.setName(newName);
         category.setDescription(dto.getDescription() != null ? dto.getDescription().trim() : null);
 
+        if (dto.getParentId() != null) {
+            if (id.equals(dto.getParentId())) {
+                throw new ResourceConflictException("Category cannot be its own parent");
+            }
+            Category parent = categoryRepository.findById(dto.getParentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent Category", "id", dto.getParentId()));
+            category.setParent(parent);
+        } else {
+            category.setParent(null);
+        }
+
         Category updatedCategory = categoryRepository.save(category);
         log.info("Updated category: ID={}, Name='{}'", updatedCategory.getId(), updatedCategory.getName());
         return mapToResponseDto(updatedCategory);
@@ -86,15 +103,37 @@ public class CategoryService {
                     String.format("Cannot delete category '%s' because it is referenced by %d product(s)", category.getName(), productCount));
         }
 
+        List<Category> subcategories = categoryRepository.findByParentId(id);
+        if (!subcategories.isEmpty()) {
+            throw new ResourceConflictException(
+                    String.format("Cannot delete category '%s' because it contains %d subcategories", category.getName(), subcategories.size()));
+        }
+
         categoryRepository.delete(category);
         log.info("Deleted category: ID={}, Name='{}'", id, category.getName());
     }
 
     private CategoryResponseDto mapToResponseDto(Category category) {
+        Long parentId = category.getParent() != null ? category.getParent().getId() : null;
+        String parentName = category.getParent() != null ? category.getParent().getName() : null;
+
+        List<CategoryResponseDto> subcategories = categoryRepository.findByParentId(category.getId()).stream()
+                .map(sub -> CategoryResponseDto.builder()
+                        .id(sub.getId())
+                        .name(sub.getName())
+                        .description(sub.getDescription())
+                        .parentId(category.getId())
+                        .parentName(category.getName())
+                        .build())
+                .collect(Collectors.toList());
+
         return CategoryResponseDto.builder()
                 .id(category.getId())
                 .name(category.getName())
                 .description(category.getDescription())
+                .parentId(parentId)
+                .parentName(parentName)
+                .subcategories(subcategories)
                 .build();
     }
 }

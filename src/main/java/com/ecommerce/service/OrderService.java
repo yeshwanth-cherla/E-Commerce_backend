@@ -18,6 +18,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -50,6 +51,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final UserRepository userRepository;
     private final AddressRepository addressRepository;
+    private final PaymentRepository paymentRepository;
 
     // ------------------------------------------------------------------ //
     //  Checkout                                                            //
@@ -156,7 +158,14 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // --- 8. Clear cart ---
+        // --- 8. Create Payment Record (COD default) ---
+        Payment payment = new Payment();
+        payment.setOrder(savedOrder);
+        payment.setMethod(dto.getPaymentMethod() != null && !dto.getPaymentMethod().isBlank() ? dto.getPaymentMethod() : "COD");
+        payment.setStatus(PaymentStatus.PENDING);
+        paymentRepository.save(payment);
+
+        // --- 9. Clear cart ---
         cart.getCartItems().clear();
         cartRepository.save(cart);
 
@@ -233,12 +242,20 @@ public class OrderService {
                 .country(order.getAddress().getCountry())
                 .build();
 
+        Optional<Payment> paymentOpt = paymentRepository.findByOrder(order);
+        String paymentMethod = paymentOpt.map(Payment::getMethod).orElse("COD");
+        PaymentStatus paymentStatus = paymentOpt.map(Payment::getStatus).orElse(PaymentStatus.PENDING);
+        Instant paidAt = paymentOpt.map(Payment::getPaidAt).orElse(null);
+
         return OrderResponseDto.builder()
                 .id(order.getId())
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .address(addressDto)
                 .items(itemDtos)
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .paidAt(paidAt)
                 .createdAt(order.getCreatedAt())
                 .build();
     }

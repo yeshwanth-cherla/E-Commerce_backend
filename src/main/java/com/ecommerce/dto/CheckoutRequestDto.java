@@ -25,4 +25,11 @@ public class CheckoutRequestDto {
      */
     @NotNull(message = "Delivery address ID is required")
     private UUID addressId;
+
+    private String paymentMethod = "COD";
+
+    public CheckoutRequestDto(UUID addressId) {
+        this.addressId = addressId;
+        this.paymentMethod = "COD";
+    }
 }

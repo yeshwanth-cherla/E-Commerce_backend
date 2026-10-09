@@ -4,13 +4,17 @@ import com.ecommerce.dto.OrderItemResponseDto;
 import com.ecommerce.dto.OrderResponseDto;
 import com.ecommerce.dto.OrderResponseDto.AddressSnapshotDto;
 import com.ecommerce.dto.UpdateOrderStatusRequestDto;
+import com.ecommerce.dto.UpdatePaymentStatusRequestDto;
 import com.ecommerce.entity.Order;
 import com.ecommerce.entity.OrderItem;
 import com.ecommerce.entity.OrderStatus;
+import com.ecommerce.entity.Payment;
+import com.ecommerce.entity.PaymentStatus;
 import com.ecommerce.entity.Product;
 import com.ecommerce.exception.ResourceConflictException;
 import com.ecommerce.exception.ResourceNotFoundException;
 import com.ecommerce.repository.OrderRepository;
+import com.ecommerce.repository.PaymentRepository;
 import com.ecommerce.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,12 +24,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Handles administrative order management: listing, inspection, status progression, and stock restoration.
+ * Handles administrative order management: listing, inspection, status progression, stock restoration, and payment collection.
  */
 @Slf4j
 @Service
@@ -34,6 +39,7 @@ public class AdminOrderService {
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
+    private final PaymentRepository paymentRepository;
 
     /**
      * Lists orders with status and user filtering, paginated.
@@ -84,6 +90,41 @@ public class AdminOrderService {
                 orderId, current, target);
 
         return mapToOrderResponseDto(savedOrder);
+    }
+
+    /**
+     * Updates payment status for an order (e.g., marking COD payment as collected).
+     * Prevents collecting payment for a cancelled order.
+     */
+    @Transactional
+    public OrderResponseDto updatePaymentStatus(UUID orderId, UpdatePaymentStatusRequestDto dto) {
+        Order order = orderRepository.findByIdWithDetails(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found with id : '" + orderId + "'"));
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new ResourceConflictException("Cannot update payment status for a cancelled order");
+        }
+
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseGet(() -> {
+                    Payment p = new Payment();
+                    p.setOrder(order);
+                    p.setMethod("COD");
+                    p.setStatus(PaymentStatus.PENDING);
+                    return p;
+                });
+
+        payment.setStatus(dto.getPaymentStatus());
+        if (dto.getPaymentStatus() == PaymentStatus.SUCCESS && payment.getPaidAt() == null) {
+            payment.setPaidAt(Instant.now());
+        }
+
+        paymentRepository.save(payment);
+
+        log.info("Payment status updated by admin: orderId={}, newPaymentStatus={}",
+                orderId, dto.getPaymentStatus());
+
+        return mapToOrderResponseDto(order);
     }
 
     // ------------------------------------------------------------------ //
@@ -154,12 +195,31 @@ public class AdminOrderService {
                 .country(order.getAddress().getCountry())
                 .build();
 
+        String paymentMethod = "COD";
+        PaymentStatus paymentStatus = PaymentStatus.PENDING;
+        Instant paidAt = null;
+
+        Optional<Payment> paymentOpt = paymentRepository.findByOrderId(order.getId());
+        if (paymentOpt.isPresent()) {
+            Payment payment = paymentOpt.get();
+            if (payment.getMethod() != null) {
+                paymentMethod = payment.getMethod();
+            }
+            if (payment.getStatus() != null) {
+                paymentStatus = payment.getStatus();
+            }
+            paidAt = payment.getPaidAt();
+        }
+
         return OrderResponseDto.builder()
                 .id(order.getId())
                 .status(order.getStatus())
                 .totalAmount(order.getTotalAmount())
                 .address(addressDto)
                 .items(itemDtos)
+                .paymentMethod(paymentMethod)
+                .paymentStatus(paymentStatus)
+                .paidAt(paidAt)
                 .createdAt(order.getCreatedAt())
                 .build();
     }
