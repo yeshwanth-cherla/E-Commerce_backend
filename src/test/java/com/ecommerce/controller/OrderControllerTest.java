@@ -110,7 +110,7 @@ class OrderControllerTest {
 
         // Category
         category = new Category();
-        category.setName("Electronics");
+        category.setName("Order Cat " + UUID.randomUUID());
         categoryRepository.save(category);
 
         // Products
@@ -232,7 +232,7 @@ class OrderControllerTest {
                     .content(objectMapper.writeValueAsString(body)))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.id").isString())
-                    .andExpect(jsonPath("$.status").value("PENDING"))
+                    .andExpect(jsonPath("$.status").value("CONFIRMED"))
                     .andExpect(jsonPath("$.totalAmount").value(closeTo(2599.98, 0.01)))
                     .andExpect(jsonPath("$.address.id").value(addressA.getId().toString()))
                     .andExpect(jsonPath("$.address.street").value("123 Main St"))
@@ -428,7 +428,7 @@ class OrderControllerTest {
                     .with(mockJwt(userA)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.content", hasSize(1)))
-                    .andExpect(jsonPath("$.content[0].status").value("PENDING"))
+                    .andExpect(jsonPath("$.content[0].status").value("CONFIRMED"))
                     .andExpect(jsonPath("$.totalElements").value(1));
         }
 

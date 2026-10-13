@@ -147,7 +147,7 @@ public class OrderService {
         Order order = new Order();
         order.setUser(user);
         order.setAddress(address);
-        order.setStatus(OrderStatus.PENDING);
+        order.setStatus(OrderStatus.CONFIRMED);
         order.setTotalAmount(totalAmount);
 
         // Wire order items to the order (cascade will persist them)
@@ -247,6 +247,10 @@ public class OrderService {
         PaymentStatus paymentStatus = paymentOpt.map(Payment::getStatus).orElse(PaymentStatus.PENDING);
         Instant paidAt = paymentOpt.map(Payment::getPaidAt).orElse(null);
 
+        UUID customerId = order.getUser() != null ? order.getUser().getId() : null;
+        String customerEmail = order.getUser() != null ? order.getUser().getEmail() : null;
+        String customerName = order.getUser() != null ? order.getUser().getFullName() : null;
+
         return OrderResponseDto.builder()
                 .id(order.getId())
                 .status(order.getStatus())
@@ -257,6 +261,9 @@ public class OrderService {
                 .paymentStatus(paymentStatus)
                 .paidAt(paidAt)
                 .createdAt(order.getCreatedAt())
+                .customerId(customerId)
+                .customerEmail(customerEmail)
+                .customerName(customerName)
                 .build();
     }
 

@@ -57,7 +57,7 @@ public class Order {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private OrderStatus status = OrderStatus.PENDING;
+    private OrderStatus status = OrderStatus.CONFIRMED;
 
     /**
      * Total monetary value of this order.

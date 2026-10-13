@@ -22,7 +22,7 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
      * All orders for a user, newest first, with items + products eager-loaded.
      * The EntityGraph avoids N+1 queries when iterating over order items.
      */
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address"})
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address", "user"})
     Page<Order> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 
     List<Order> findByUserId(UUID userId);
@@ -34,16 +34,16 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
     long countByStatus(OrderStatus status);
 
     /**
-     * Fetch a single order by ID with all items + products + address loaded eagerly.
+     * Fetch a single order by ID with all items + products + address + user loaded eagerly.
      * Used in getOrderById to avoid separate lazy-load round-trips.
      */
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address"})
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address", "user"})
     @Query("SELECT o FROM Order o WHERE o.id = :id")
     Optional<Order> findByIdWithDetails(@Param("id") UUID id);
 
     boolean existsByAddressId(UUID addressId);
 
-    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address"})
+    @EntityGraph(attributePaths = {"orderItems", "orderItems.product", "address", "user"})
     @Query("SELECT o FROM Order o WHERE " +
            "(:status IS NULL OR o.status = :status) AND " +
            "(:userId IS NULL OR o.user.id = :userId) " +

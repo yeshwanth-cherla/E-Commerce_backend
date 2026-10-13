@@ -39,6 +39,11 @@ public class OrderResponseDto {
 
     Instant createdAt;
 
+    /** Customer details permitted for administrators and owner context. */
+    UUID customerId;
+    String customerEmail;
+    String customerName;
+
     /**
      * Lightweight address snapshot embedded inside an order response.
      * Avoids exposing the full Address entity and isolates the historical snapshot.

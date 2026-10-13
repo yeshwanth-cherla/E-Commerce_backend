@@ -211,6 +211,10 @@ public class AdminOrderService {
             paidAt = payment.getPaidAt();
         }
 
+        UUID customerId = order.getUser() != null ? order.getUser().getId() : null;
+        String customerEmail = order.getUser() != null ? order.getUser().getEmail() : null;
+        String customerName = order.getUser() != null ? order.getUser().getFullName() : null;
+
         return OrderResponseDto.builder()
                 .id(order.getId())
                 .status(order.getStatus())
@@ -221,6 +225,9 @@ public class AdminOrderService {
                 .paymentStatus(paymentStatus)
                 .paidAt(paidAt)
                 .createdAt(order.getCreatedAt())
+                .customerId(customerId)
+                .customerEmail(customerEmail)
+                .customerName(customerName)
                 .build();
     }
 
