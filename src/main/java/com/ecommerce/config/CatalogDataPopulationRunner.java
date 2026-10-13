@@ -138,13 +138,24 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
 
             if (existingOpt.isPresent()) {
                 Product p = existingOpt.get();
-                p.setDescription(seed.description);
-                p.setPrice(seed.price);
-                p.setStockQuantity(seed.stockQuantity);
-                p.setImageUrl(seed.imageUrl);
-                p.setCategory(cat);
-                p.setEnabled(true);
-                productRepository.save(p);
+                boolean needsSave = false;
+                // Preserve admin customizations: Never overwrite existing description, price, stockQuantity, or imageUrl!
+                if (p.getCategory() == null || !p.getCategory().getId().equals(cat.getId())) {
+                    p.setCategory(cat);
+                    needsSave = true;
+                }
+                if (!p.isEnabled()) {
+                    p.setEnabled(true);
+                    needsSave = true;
+                }
+                // Only if the existing product has an empty or null imageUrl, initialize with seed
+                if (p.getImageUrl() == null || p.getImageUrl().trim().isEmpty()) {
+                    p.setImageUrl(seed.imageUrl);
+                    needsSave = true;
+                }
+                if (needsSave) {
+                    productRepository.save(p);
+                }
             } else {
                 Product p = new Product();
                 p.setName(seed.name);
@@ -194,7 +205,7 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
         // ──────────────── Grocery (10 products) ────────────────
         list.add(new ProductSeed("Grocery", "Tata Sampann Unpolished Toor Dal (1kg)",
                 "Rich in protein and dietary fiber, natural unpolished toor dal for everyday nutritious meals.",
-                165.00, 80, "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80"));
+                165.00, 80, "https://images.unsplash.com/photo-1515543237350-b3eea1ec8082?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Grocery", "Fortune Sunlite Refined Sunflower Oil (1L Pouch)",
                 "Enriched with Vitamins A and D, lightweight and healthy cooking oil suitable for all frying and curry preparations.",
                 145.00, 100, "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=600&q=80"));
@@ -218,7 +229,7 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
                 499.00, 65, "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Grocery", "Saffola Masala Oats Classic Masala (1kg)",
                 "Delicious whole grain rolled oats blended with authentic Indian aromatic spices and real dried veggies.",
-                210.00, 90, "https://images.unsplash.com/photo-1614961908595-81206f376cf2?auto=format&fit=crop&w=600&q=80"));
+                210.00, 90, "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Grocery", "Dabur 100% Pure Squeezy Honey (500g)",
                 "Pure naturally sourced honey with no added sugar or artificial preservatives for daily immunity.",
                 230.00, 85, "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=600&q=80"));
@@ -258,7 +269,7 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
         // ──────────────── Fashion (10 products) ────────────────
         list.add(new ProductSeed("Fashion", "Levi's Men's 511 Slim Fit Stretch Denim Jeans",
                 "Modern slim-cut jeans with room to move, crafted from premium stretch cotton denim with zip fly.",
-                2499.00, 40, "https://images.unsplash.com/photo-1542272604-780c96856592?auto=format&fit=crop&w=600&q=80"));
+                2499.00, 40, "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Fashion", "Puma Men's Smashic Casual Sneakers",
                 "Classic tennis-inspired street silhouette with SoftFoam+ cushioned footbed and durable rubber outsole.",
                 2199.00, 50, "https://images.unsplash.com/photo-1549298916-b41d501d3772?auto=format&fit=crop&w=600&q=80"));
@@ -299,7 +310,7 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
                 999.00, 65, "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Home & Kitchen", "Hawkins Contura Hard Anodised Inner Lid Pressure Cooker (3L)",
                 "Hard anodised body heats fast and uniformly, staying looking new for years; non-toxic and scratch resistant.",
-                1825.00, 45, "https://images.unsplash.com/photo-1584990347449-a20d75b3c434?auto=format&fit=crop&w=600&q=80"));
+                1825.00, 45, "https://images.unsplash.com/photo-1584269600464-37b1b58a9fe7?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Home & Kitchen", "Wakefit Hollow Fiber Sleeping Bed Pillow (Set of 2)",
                 "Medium-firm neck and head support with breathable microfiber casing for restful, cloud-like sleep.",
                 799.00, 90, "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=600&q=80"));
@@ -343,10 +354,10 @@ public class CatalogDataPopulationRunner implements CommandLineRunner {
                 199.00, 100, "https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Beauty & Personal Care", "Plum Green Tea Pore Cleansing Face Wash (120ml)",
                 "Gentle soap-free foaming wash with green tea extract and glycolic acid to combat acne and deep clean pores.",
-                315.00, 90, "https://images.unsplash.com/photo-1556228722-d0b5d95d10d8?auto=format&fit=crop&w=600&q=80"));
+                315.00, 90, "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Beauty & Personal Care", "Forest Essentials Delicate Facial Cleanser Kashmiri Saffron (200ml)",
                 "Purifying Ayurvedic cleanser with steam distilled Kashmiri saffron, neem leaf, and organic kewda water.",
-                1475.00, 35, "https://images.unsplash.com/photo-1608248597359-59750534c090?auto=format&fit=crop&w=600&q=80"));
+                1475.00, 35, "https://images.unsplash.com/photo-1601049541289-9b1b7bbbfe19?auto=format&fit=crop&w=600&q=80"));
         list.add(new ProductSeed("Beauty & Personal Care", "L'Oreal Paris Total Repair 5 Deep Restoring Hair Mask (200ml)",
                 "Concentrated ceramide conditioning mask battling 5 signs of damage: hair fall, dryness, roughness, dullness, split ends.",
                 399.00, 65, "https://images.unsplash.com/photo-1571781926291-c477ebfd024b?auto=format&fit=crop&w=600&q=80"));

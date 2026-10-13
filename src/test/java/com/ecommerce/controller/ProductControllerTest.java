@@ -258,7 +258,67 @@ class ProductControllerTest {
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Flagship Smartphone Pro Max"))
-                .andExpect(jsonPath("$.price").value(1099.99));
+                .andExpect(jsonPath("$.price").value(1099.99))
+                .andExpect(jsonPath("$.imageUrl").value("https://example.com/phone_updated.jpg"));
+    }
+
+    @Test
+    void updateProduct_ImageUrlPersistence_SuccessfullyPersistedAndReturnedOnSubsequentFetch() throws Exception {
+        String newImageUrl = "https://images.unsplash.com/photo-1598327105666-5b89351aff97?auto=format&fit=crop&w=600&q=80";
+
+        ProductRequestDto updateRequest = ProductRequestDto.builder()
+                .name(productSmartphone.getName())
+                .description(productSmartphone.getDescription())
+                .price(productSmartphone.getPrice())
+                .stockQuantity(productSmartphone.getStockQuantity())
+                .imageUrl(newImageUrl)
+                .categoryId(categoryElectronics.getId())
+                .enabled(true)
+                .build();
+
+        // 1. Submit PUT request to update image URL
+        mockMvc.perform(put("/api/products/" + productSmartphone.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(newImageUrl))
+                .andExpect(jsonPath("$.name").value(productSmartphone.getName()))
+                .andExpect(jsonPath("$.price").value(productSmartphone.getPrice().doubleValue()));
+
+        // 2. Fetch fresh product details via GET and verify persistence
+        mockMvc.perform(get("/api/products/" + productSmartphone.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(newImageUrl))
+                .andExpect(jsonPath("$.name").value(productSmartphone.getName()))
+                .andExpect(jsonPath("$.description").value(productSmartphone.getDescription()))
+                .andExpect(jsonPath("$.price").value(productSmartphone.getPrice().doubleValue()))
+                .andExpect(jsonPath("$.stockQuantity").value(productSmartphone.getStockQuantity()));
+
+        // 3. Edit only the description and verify the imageUrl remains unchanged
+        ProductRequestDto secondUpdateRequest = ProductRequestDto.builder()
+                .name(productSmartphone.getName())
+                .description("Updated flagship description with preserved image")
+                .price(productSmartphone.getPrice())
+                .stockQuantity(productSmartphone.getStockQuantity())
+                .imageUrl(newImageUrl)
+                .categoryId(categoryElectronics.getId())
+                .enabled(true)
+                .build();
+
+        mockMvc.perform(put("/api/products/" + productSmartphone.getId())
+                        .with(jwt().authorities(new SimpleGrantedAuthority("ROLE_ADMIN")))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(secondUpdateRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(newImageUrl))
+                .andExpect(jsonPath("$.description").value("Updated flagship description with preserved image"));
+
+        // Verify fresh GET still returns the preserved image URL
+        mockMvc.perform(get("/api/products/" + productSmartphone.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.imageUrl").value(newImageUrl))
+                .andExpect(jsonPath("$.description").value("Updated flagship description with preserved image"));
     }
 
     @Test
